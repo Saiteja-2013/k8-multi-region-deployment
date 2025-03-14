@@ -1,0 +1,14 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo "Building the app..."
+      - docker build -t web-app .
+      - docker tag web-app:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/web-app:latest
+      - $(aws ecr get-login --no-include-email --region $AWS_REGION)
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/web-app:latest
+
+artifacts:
+  files:
+    - web-app
