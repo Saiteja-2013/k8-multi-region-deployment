@@ -1,0 +1,47 @@
+name: Deploy Multi-Region App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "k8s-manifests/**"
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: v1.29.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsEKS
+          role-session-name: GitHubActionsEKS
+          aws-region: us-west-2
+
+      - name: Update Kubeconfig for Region 1
+        run: aws eks update-kubeconfig --name eks-cluster-west --region us-west-2
+
+      - name: Deploy to Region 1
+        run: kubectl apply -f k8s-manifests/region-1/
+
+      - name: Update Kubeconfig for Region 2
+        run: aws eks update-kubeconfig --name eks-cluster-east --region us-east-1
+
+      - name: Deploy to Region 2
+        run: kubectl apply -f k8s-manifests/region-2/
+
+      - name: Verify Deployments
+        run: kubectl get pods -A
